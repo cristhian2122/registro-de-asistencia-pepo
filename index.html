@@ -274,7 +274,23 @@
   </main>
 </div>
 
-<script>
+<script type="module">
+// ---------- Firebase ----------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDR2j-61fOaZaXh2HM0kz7G25pvo3YNBZY",
+  authDomain: "team-pepo-asistencia.firebaseapp.com",
+  databaseURL: "https://team-pepo-asistencia-default-rtdb.firebaseio.com",
+  projectId: "team-pepo-asistencia",
+  storageBucket: "team-pepo-asistencia.firebasestorage.app",
+  messagingSenderId: "1001224119109",
+  appId: "1:1001224119109:web:0580dbcadb35e52bdb942c"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
 // ---------- Config ----------
 const STUDENT_USER = "teampepo123";
 const STUDENT_PASS = "###123#";
@@ -315,13 +331,12 @@ function revealProfesorAccess(){
   document.getElementById('role-tabs').style.display='flex';
   switchRole('profesor');
 }
-async function rememberProfesorAccess(){
-  try{ await window.storage.set('profesor-access', '1', false); }catch(e){}
+function rememberProfesorAccess(){
+  try{ localStorage.setItem('profesor-access', '1'); }catch(e){}
 }
-async function checkRememberedAccess(){
+function checkRememberedAccess(){
   try{
-    const r = await window.storage.get('profesor-access', false);
-    if(r && r.value==='1') revealProfesorAccess();
+    if(localStorage.getItem('profesor-access')==='1') revealProfesorAccess();
   }catch(e){}
 }
 
@@ -362,33 +377,39 @@ async function submitAlumno(){
 
 async function loginAs(role, label){
   session = {role, label};
-  try{
-    await window.storage.set('session', JSON.stringify(session), false);
-  }catch(e){}
-  if(role==='admin') await rememberProfesorAccess();
+  try{ localStorage.setItem('session', JSON.stringify(session)); }catch(e){}
+  if(role==='admin') rememberProfesorAccess();
   await enterApp();
 }
 
-async function logout(){
+function logout(){
   session = null;
-  try{ await window.storage.delete('session', false); }catch(e){}
+  try{ localStorage.removeItem('session'); }catch(e){}
+  stopLiveSync();
   document.getElementById('app-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
 
-// ---------- Data ----------
-async function loadData(){
-  try{
-    const r = await window.storage.get('students', true);
-    students = r ? JSON.parse(r.value) : [];
-  }catch(e){ students = []; }
-  try{
-    const r = await window.storage.get('attendance', true);
-    attendance = r ? JSON.parse(r.value) : {};
-  }catch(e){ attendance = {}; }
+// ---------- Data (Firebase Realtime Database) ----------
+let unsubStudents = null;
+let unsubAttendance = null;
+
+function startLiveSync(){
+  unsubStudents = onValue(ref(db,'appdata/students'), snap=>{
+    students = snap.val() || [];
+    if(session) renderGrid();
+  }, err=>console.error('students sync error', err));
+  unsubAttendance = onValue(ref(db,'appdata/attendance'), snap=>{
+    attendance = snap.val() || {};
+    if(session) renderGrid();
+  }, err=>console.error('attendance sync error', err));
 }
-async function saveStudents(){ await window.storage.set('students', JSON.stringify(students), true); }
-async function saveAttendance(){ await window.storage.set('attendance', JSON.stringify(attendance), true); }
+function stopLiveSync(){
+  if(unsubStudents){ unsubStudents(); unsubStudents=null; }
+  if(unsubAttendance){ unsubAttendance(); unsubAttendance=null; }
+}
+async function saveStudents(){ await set(ref(db,'appdata/students'), students); }
+async function saveAttendance(){ await set(ref(db,'appdata/attendance'), attendance); }
 
 function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
 function pad(n){ return n.toString().padStart(2,'0'); }
@@ -579,22 +600,32 @@ async function enterApp(){
     ? `Sesión: <b>${session.label}</b> (profesor/a)`
     : `Sesión: <b>Alumnos</b> (solo lectura)`;
   document.getElementById('admin-add-panel').style.display = session.role==='admin' ? 'block' : 'none';
-  await loadData();
   renderMonthsNav();
-  renderGrid();
+  startLiveSync();
 }
 
-(async function init(){
+(function init(){
   try{
-    const r = await window.storage.get('session', false);
-    if(r && r.value){
-      session = JSON.parse(r.value);
-      await enterApp();
+    const raw = localStorage.getItem('session');
+    if(raw){
+      session = JSON.parse(raw);
+      enterApp();
       return;
     }
   }catch(e){}
-  await checkRememberedAccess();
+  checkRememberedAccess();
 })();
+
+// ---------- Expose functions used by inline HTML handlers ----------
+window.logoClick = logoClick;
+window.switchRole = switchRole;
+window.submitProfesor = submitProfesor;
+window.submitAlumno = submitAlumno;
+window.logout = logout;
+window.addStudent = addStudent;
+window.exportMonth = exportMonth;
+window.exportGeneral = exportGeneral;
 </script>
 </body>
 </html>
+
