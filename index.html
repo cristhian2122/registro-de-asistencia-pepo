@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Pepo · Registro de Asistencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF6EC;
+    --paper-2:#F3EDDE;
+    --ink:#1E2430;
+    --ink-soft:#5B6472;
+    --line:#E1D8C0;
+    --accent:#2451B3;
+    --accent-soft:#DCE6FB;
+    --accent-ink:#16336E;
+    --verde:#1F9D55; --verde-bg:#DEF3E4;
+    --amarillo:#C98A00; --amarillo-bg:#FBEECB;
+    --rojo:#D14343; --rojo-bg:#FBE1E1;
+    --plomo:#667085; --plomo-bg:#E7E9EE;
+    --radius:14px;
+    --shadow: 0 1px 2px rgba(30,36,48,.05), 0 8px 24px -12px rgba(30,36,48,.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 1px) 0 0/22px 22px,
+      var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input{font-family:inherit;}
+
+  /* ---------- Login ---------- */
+  #login-screen{
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:20px;
+    box-shadow:var(--shadow);
+    width:100%;max-width:420px;
+    padding:36px 32px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;margin-bottom:6px;
+  }
+  .brand .stamp{
+    width:34px;height:34px;border-radius:9px;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-family:'Space Grotesk';font-size:15px;
+    transform:rotate(-4deg);
+  }
+  .brand h1{font-size:19px;margin:0;letter-spacing:-.01em;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);margin:0 0 22px;
+  }
+  .role-tabs{display:flex;gap:8px;margin-bottom:22px;}
+  .role-tab{
+    flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--line);
+    background:var(--paper-2);color:var(--ink-soft);font-weight:600;font-size:13.5px;
+    transition:.15s;
+  }
+  .role-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .form-mode{display:flex;gap:6px;margin-bottom:18px;font-size:13px;}
+  .form-mode button{
+    background:none;border:none;color:var(--ink-soft);padding:4px 0;font-weight:600;
+    border-bottom:2px solid transparent;
+  }
+  .form-mode button.active{color:var(--accent-ink);border-bottom-color:var(--accent);}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin:14px 0 6px;}
+  input[type=text],input[type=email],input[type=password]{
+    width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);
+    background:var(--paper);font-size:14px;color:var(--ink);
+  }
+  input:focus{outline:2px solid var(--accent-soft);border-color:var(--accent);}
+  .btn-primary{
+    width:100%;margin-top:20px;padding:12px;border:none;border-radius:10px;
+    background:var(--accent);color:#fff;font-weight:600;font-size:14px;
+  }
+  .btn-primary:hover{background:var(--accent-ink);}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:14px;line-height:1.5;}
+  .error-msg{
+    background:var(--rojo-bg);color:var(--rojo);font-size:12.5px;padding:9px 11px;
+    border-radius:8px;margin-top:12px;display:none;
+  }
+  .success-msg{
+    background:var(--verde-bg);color:var(--verde);font-size:12.5px;padding:9px 11px;
+    border-radius:8px;margin-top:12px;display:none;
+  }
+  #alumno-form,#profesor-form{display:none;}
+
+  /* ---------- App shell ---------- */
+  #app-screen{display:none;min-height:100vh;}
+  header.topbar{
+    background:#fff;border-bottom:1px solid var(--line);
+    padding:14px 26px;display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:20;
+  }
+  header.topbar .who{font-size:12.5px;color:var(--ink-soft);}
+  header.topbar .who b{color:var(--ink);}
+  .logout-btn{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:9px;
+    padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink);
+  }
+  .logout-btn:hover{background:var(--rojo-bg);color:var(--rojo);border-color:var(--rojo-bg);}
+  main{padding:22px 26px 60px;max-width:1180px;margin:0 auto;}
+
+  .months-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;}
+  .month-btn{
+    background:#fff;border:1px solid var(--line);border-radius:999px;
+    padding:8px 16px;font-size:13px;font-weight:600;color:var(--ink-soft);
+  }
+  .month-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  .panel{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:20px 22px;margin-bottom:20px;
+  }
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .panel-head h2{font-size:17px;margin:0;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:12px;height:12px;border-radius:4px;display:inline-block;}
+  .dot.verde{background:var(--verde);} .dot.amarillo{background:var(--amarillo);}
+  .dot.rojo{background:var(--rojo);} .dot.plomo{background:var(--plomo);}
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn-sm{
+    border:1px solid var(--line);background:var(--paper-2);border-radius:9px;
+    padding:8px 13px;font-size:12.5px;font-weight:600;color:var(--ink);
+  }
+  .btn-sm.accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn-sm.accent:hover{background:var(--accent-ink);}
+  .btn-sm:hover{background:var(--accent-soft);}
+
+  .add-student-row{display:flex;gap:8px;margin-bottom:16px;}
+  .add-student-row input{flex:1;}
+
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;}
+  table.grid{border-collapse:collapse;width:100%;min-width:600px;}
+  table.grid th,table.grid td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);}
+  table.grid th{
+    background:var(--paper-2);font-family:'IBM Plex Mono';font-weight:500;font-size:11.5px;
+    color:var(--ink-soft);padding:8px 4px;position:sticky;top:0;
+  }
+  table.grid td.name-cell,table.grid th.name-th{
+    position:sticky;left:0;background:#fff;z-index:5;text-align:left;
+    padding:9px 12px;font-size:13.5px;font-weight:600;min-width:150px;
+  }
+  table.grid th.name-th{background:var(--paper-2);z-index:6;}
+  table.grid td.day-cell{
+    width:78px;min-width:78px;height:38px;text-align:center;padding:0;cursor:pointer;
+  }
+  table.grid td.day-cell.readonly{cursor:default;}
+  .stamp-mark{
+    width:22px;height:22px;border-radius:50%;margin:0 auto;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;color:#fff;
+  }
+  .stamp-mark.verde{background:var(--verde);}
+  .stamp-mark.amarillo{background:var(--amarillo);}
+  .stamp-mark.rojo{background:var(--rojo);}
+  .stamp-mark.plomo{background:var(--plomo);}
+  .status-select{
+    width:100%;height:38px;border:none;text-align:center;text-align-last:center;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
+    background:#fff;color:var(--ink-soft);cursor:pointer;appearance:none;
+    -webkit-appearance:none;padding:0 2px;
+  }
+  .status-select:focus{outline:2px solid var(--accent-soft);}
+  .status-select.verde{background:var(--verde-bg);color:var(--verde);}
+  .status-select.amarillo{background:var(--amarillo-bg);color:var(--amarillo);}
+  .status-select.rojo{background:var(--rojo-bg);color:var(--rojo);}
+  .status-select.plomo{background:var(--plomo-bg);color:var(--plomo);}
+  .no-students{padding:30px;text-align:center;color:var(--ink-soft);font-size:14px;}
+  .remove-x{background:none;border:none;color:var(--ink-soft);font-size:14px;margin-left:6px;}
+  .remove-x:hover{color:var(--rojo);}
+  footer.note{text-align:center;color:var(--ink-soft);font-size:11.5px;margin-top:10px;}
+  @media(max-width:640px){
+    main{padding:16px;}
+    .panel{padding:16px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="brand"><div class="stamp" id="logo-trigger" onclick="logoClick()">TP</div><h1>Team Pepo</h1></div>
+    <p class="eyebrow">Registro de asistencia</p>
+
+    <div class="role-tabs" id="role-tabs" style="display:none;">
+      <button class="role-tab active" id="tab-profesor" onclick="switchRole('profesor')">Soy profesor/a</button>
+      <button class="role-tab" id="tab-alumno" onclick="switchRole('alumno')">Soy alumno/a</button>
+    </div>
+
+    <!-- Profesor -->
+    <div id="profesor-form" style="display:none;">
+      <label for="prof-email">Correo</label>
+      <input type="email" id="prof-email" placeholder="tucorreo@ejemplo.com">
+      <label for="prof-pass">Contraseña</label>
+      <input type="password" id="prof-pass" placeholder="Tu contraseña">
+      <label for="prof-code">Código adicional</label>
+      <input type="password" id="prof-code" placeholder="Código secreto">
+      <button class="btn-primary" onclick="submitProfesor()">Entrar como profesor/a</button>
+      <div class="error-msg" id="prof-error"></div>
+    </div>
+
+    <!-- Alumno -->
+    <div id="alumno-form" style="display:block;">
+      <label for="al-user">Usuario</label>
+      <input type="text" id="al-user" placeholder="Usuario del salón">
+      <label for="al-pass">Contraseña</label>
+      <input type="password" id="al-pass" placeholder="Contraseña del salón">
+      <button class="btn-primary" onclick="submitAlumno()">Ver asistencia</button>
+      <div class="error-msg" id="al-error"></div>
+      <p class="hint">Usa el usuario y contraseña que te dio tu profesor/a. Aquí solo puedes ver el registro, no editarlo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app-screen">
+  <header class="topbar">
+    <div class="brand"><div class="stamp">TP</div><h1 style="font-size:16px;">Team Pepo</h1></div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span class="who" id="who-label"></span>
+      <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="months-nav" id="months-nav"></div>
+
+    <div class="panel" id="admin-add-panel" style="display:none;">
+      <div class="panel-head"><h2>Alumnos</h2></div>
+      <div class="add-student-row">
+        <input type="text" id="new-student-name" placeholder="Nombre del nuevo alumno">
+        <button class="btn-sm accent" onclick="addStudent()">Agregar alumno</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 id="month-title">Julio 2026</h2>
+        <div class="legend">
+          <span><i class="dot verde"></i>Asistió</span>
+          <span><i class="dot amarillo"></i>Tardanza</span>
+          <span><i class="dot rojo"></i>Faltó</span>
+          <span><i class="dot plomo"></i>Asistió y se fue</span>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="grid" id="grid-table"></table></div>
+      <div class="actions" style="margin-top:16px;">
+        <button class="btn-sm accent" onclick="exportMonth()">Descargar Excel de este mes</button>
+        <button class="btn-sm accent" onclick="exportGeneral()">Descargar Excel general (Jul–Dic)</button>
+      </div>
+      <footer class="note">Toca una celda para cambiar el estado del día. Los datos se guardan automáticamente.</footer>
+    </div>
+  </main>
+</div>
+
+<script>
+// ---------- Config ----------
+const STUDENT_USER = "teampepo123";
+const STUDENT_PASS = "###123#";
+const TEACHER_EMAIL = "cristhianvalenzuela21@gmail.com";
+const TEACHER_PASS = "amaritavlaenzuela#&";
+const TEACHER_SETUP_CODE = "amara";
+const YEAR = 2026;
+const MONTHS = [
+  {key:"julio", label:"Julio", num:7, startDay:29},
+  {key:"agosto", label:"Agosto", num:8, startDay:1},
+  {key:"septiembre", label:"Septiembre", num:9, startDay:1},
+  {key:"octubre", label:"Octubre", num:10, startDay:1},
+  {key:"noviembre", label:"Noviembre", num:11, startDay:1},
+  {key:"diciembre", label:"Diciembre", num:12, startDay:1},
+];
+const STATUS_CYCLE = ["", "verde", "amarillo", "rojo", "plomo"];
+const STATUS_LABEL = {verde:"Asistió", amarillo:"Tardanza", rojo:"Faltó", plomo:"Asistió y se fue", "":""};
+const STATUS_MARK = {verde:"✓", amarillo:"T", rojo:"X", plomo:"S"};
+
+let session = null; // {role:'admin'|'alumno', email}
+let students = [];  // [{id,name}]
+let attendance = {}; // { "2026-07-29": {studentId: "verde"} }
+let currentMonthKey = "julio";
+
+// ---------- Secret professor access ----------
+let logoClickCount = 0;
+let logoClickTimer = null;
+function logoClick(){
+  logoClickCount++;
+  clearTimeout(logoClickTimer);
+  logoClickTimer = setTimeout(()=>{ logoClickCount = 0; }, 2500);
+  if(logoClickCount>=5){
+    logoClickCount = 0;
+    revealProfesorAccess();
+  }
+}
+function revealProfesorAccess(){
+  document.getElementById('role-tabs').style.display='flex';
+  switchRole('profesor');
+}
+async function rememberProfesorAccess(){
+  try{ await window.storage.set('profesor-access', '1', false); }catch(e){}
+}
+async function checkRememberedAccess(){
+  try{
+    const r = await window.storage.get('profesor-access', false);
+    if(r && r.value==='1') revealProfesorAccess();
+  }catch(e){}
+}
+
+// ---------- Login UI ----------
+function switchRole(role){
+  document.getElementById('tab-profesor').classList.toggle('active', role==='profesor');
+  document.getElementById('tab-alumno').classList.toggle('active', role==='alumno');
+  document.getElementById('profesor-form').style.display = role==='profesor' ? 'block':'none';
+  document.getElementById('alumno-form').style.display = role==='alumno' ? 'block':'none';
+}
+
+async function submitProfesor(){
+  const email = document.getElementById('prof-email').value.trim().toLowerCase();
+  const pass = document.getElementById('prof-pass').value;
+  const code = document.getElementById('prof-code').value;
+  const errEl = document.getElementById('prof-error');
+  errEl.style.display='none';
+  if(email === TEACHER_EMAIL.toLowerCase() && pass === TEACHER_PASS && code === TEACHER_SETUP_CODE){
+    await loginAs('admin', 'Profesor/a');
+  } else {
+    errEl.textContent='Correo, contraseña o código incorrectos.';
+    errEl.style.display='block';
+  }
+}
+
+async function submitAlumno(){
+  const user = document.getElementById('al-user').value.trim().toLowerCase();
+  const pass = document.getElementById('al-pass').value;
+  const errEl = document.getElementById('al-error');
+  errEl.style.display='none';
+  if(user === STUDENT_USER.toLowerCase() && pass === STUDENT_PASS){
+    await loginAs('alumno', 'Alumnos');
+  } else {
+    errEl.textContent='Usuario o contraseña incorrectos.';
+    errEl.style.display='block';
+  }
+}
+
+async function loginAs(role, label){
+  session = {role, label};
+  try{
+    await window.storage.set('session', JSON.stringify(session), false);
+  }catch(e){}
+  if(role==='admin') await rememberProfesorAccess();
+  await enterApp();
+}
+
+async function logout(){
+  session = null;
+  try{ await window.storage.delete('session', false); }catch(e){}
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+// ---------- Data ----------
+async function loadData(){
+  try{
+    const r = await window.storage.get('students', true);
+    students = r ? JSON.parse(r.value) : [];
+  }catch(e){ students = []; }
+  try{
+    const r = await window.storage.get('attendance', true);
+    attendance = r ? JSON.parse(r.value) : {};
+  }catch(e){ attendance = {}; }
+}
+async function saveStudents(){ await window.storage.set('students', JSON.stringify(students), true); }
+async function saveAttendance(){ await window.storage.set('attendance', JSON.stringify(attendance), true); }
+
+function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
+function pad(n){ return n.toString().padStart(2,'0'); }
+function dateKey(m, d){ return `${YEAR}-${pad(m)}-${pad(d)}`; }
+
+async function addStudent(){
+  const input = document.getElementById('new-student-name');
+  const name = input.value.trim();
+  if(!name) return;
+  const id = 's_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+  students.push({id, name});
+  input.value='';
+  await saveStudents();
+  renderGrid();
+}
+async function removeStudent(id){
+  if(!confirm('¿Quitar a este alumno de la lista? Su historial de asistencia se conservará guardado pero ya no se mostrará.')) return;
+  students = students.filter(s=>s.id!==id);
+  await saveStudents();
+  renderGrid();
+}
+
+function setCellStatus(dateK, studentId, status){
+  if(!attendance[dateK]) attendance[dateK]={};
+  if(status==='') delete attendance[dateK][studentId];
+  else attendance[dateK][studentId]=status;
+}
+
+// ---------- Rendering ----------
+function renderMonthsNav(){
+  const nav = document.getElementById('months-nav');
+  nav.innerHTML='';
+  MONTHS.forEach(m=>{
+    const btn = document.createElement('button');
+    btn.className = 'month-btn' + (m.key===currentMonthKey ? ' active':'');
+    btn.textContent = m.label;
+    btn.onclick = ()=>{ currentMonthKey = m.key; renderMonthsNav(); renderGrid(); };
+    nav.appendChild(btn);
+  });
+}
+
+function renderGrid(){
+  const month = MONTHS.find(m=>m.key===currentMonthKey);
+  document.getElementById('month-title').textContent = `${month.label} ${YEAR}`;
+  const totalDays = daysInMonth(YEAR, month.num);
+  const startDay = month.startDay;
+  const days = [];
+  for(let d=startDay; d<=totalDays; d++) days.push(d);
+
+  const table = document.getElementById('grid-table');
+  table.innerHTML='';
+  const isAdmin = session.role==='admin';
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  const thName = document.createElement('th');
+  thName.className='name-th'; thName.textContent='Alumno';
+  trh.appendChild(thName);
+  days.forEach(d=>{
+    const th = document.createElement('th');
+    th.textContent = d;
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  if(students.length===0){
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.className='no-students';
+    td.colSpan = days.length+1;
+    td.textContent = isAdmin ? 'Todavía no agregaste alumnos. Usa el campo de arriba para agregar el primero.' : 'Aún no hay alumnos registrados.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    students.forEach(s=>{
+      const tr = document.createElement('tr');
+      const tdName = document.createElement('td');
+      tdName.className='name-cell';
+      tdName.textContent = s.name;
+      if(isAdmin){
+        const x = document.createElement('button');
+        x.className='remove-x'; x.textContent='✕'; x.title='Quitar alumno';
+        x.onclick=()=>removeStudent(s.id);
+        tdName.appendChild(x);
+      }
+      tr.appendChild(tdName);
+
+      days.forEach(d=>{
+        const dk = dateKey(month.num, d);
+        const status = (attendance[dk] && attendance[dk][s.id]) || "";
+        const td = document.createElement('td');
+        td.className = 'day-cell' + (isAdmin ? '' : ' readonly');
+        if(isAdmin){
+          const select = document.createElement('select');
+          select.className = 'status-select' + (status ? ' '+status : '');
+          STATUS_CYCLE.forEach(opt=>{
+            const o = document.createElement('option');
+            o.value = opt;
+            o.textContent = opt==='' ? '—' : STATUS_LABEL[opt];
+            if(opt===status) o.selected = true;
+            select.appendChild(o);
+          });
+          select.onchange = async (e)=>{
+            setCellStatus(dk, s.id, e.target.value);
+            await saveAttendance();
+            renderGrid();
+          };
+          td.appendChild(select);
+        } else if(status){
+          const mark = document.createElement('div');
+          mark.className = 'stamp-mark ' + status;
+          mark.textContent = STATUS_MARK[status];
+          mark.title = STATUS_LABEL[status];
+          td.appendChild(mark);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+  table.appendChild(tbody);
+}
+
+// ---------- Excel export ----------
+function buildMonthSheetData(month){
+  const totalDays = daysInMonth(YEAR, month.num);
+  const days = [];
+  for(let d=month.startDay; d<=totalDays; d++) days.push(d);
+  const header = ['Alumno', ...days.map(d=>`${pad(d)}/${pad(month.num)}`)];
+  const rows = students.map(s=>{
+    const row = [s.name];
+    days.forEach(d=>{
+      const dk = dateKey(month.num, d);
+      const status = (attendance[dk] && attendance[dk][s.id]) || "";
+      row.push(STATUS_LABEL[status] || "");
+    });
+    return row;
+  });
+  return [header, ...rows];
+}
+
+function exportMonth(){
+  if(students.length===0){ alert('Agrega alumnos antes de exportar.'); return; }
+  const month = MONTHS.find(m=>m.key===currentMonthKey);
+  const data = buildMonthSheetData(month);
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:22}, ...data[0].slice(1).map(()=>({wch:12}))];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, month.label);
+  XLSX.writeFile(wb, `Asistencia_${month.label}_${YEAR}.xlsx`);
+}
+
+function exportGeneral(){
+  if(students.length===0){ alert('Agrega alumnos antes de exportar.'); return; }
+  const wb = XLSX.utils.book_new();
+  MONTHS.forEach(month=>{
+    const data = buildMonthSheetData(month);
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [{wch:22}, ...data[0].slice(1).map(()=>({wch:12}))];
+    XLSX.utils.book_append_sheet(wb, ws, month.label);
+  });
+  // Resumen sheet: counts per student per status across all months
+  const summaryHeader = ['Alumno','Asistió','Tardanza','Faltó','Asistió y se fue'];
+  const summaryRows = students.map(s=>{
+    let v=0,a=0,r=0,p=0;
+    Object.keys(attendance).forEach(dk=>{
+      const st = attendance[dk][s.id];
+      if(st==='verde') v++;
+      else if(st==='amarillo') a++;
+      else if(st==='rojo') r++;
+      else if(st==='plomo') p++;
+    });
+    return [s.name, v, a, r, p];
+  });
+  const wsSummary = XLSX.utils.aoa_to_sheet([summaryHeader, ...summaryRows]);
+  wsSummary['!cols'] = [{wch:22},{wch:10},{wch:10},{wch:10},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen');
+  XLSX.writeFile(wb, `Asistencia_General_Julio-Diciembre_${YEAR}.xlsx`);
+}
+
+// ---------- App entry ----------
+async function enterApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('who-label').innerHTML = session.role==='admin'
+    ? `Sesión: <b>${session.label}</b> (profesor/a)`
+    : `Sesión: <b>Alumnos</b> (solo lectura)`;
+  document.getElementById('admin-add-panel').style.display = session.role==='admin' ? 'block' : 'none';
+  await loadData();
+  renderMonthsNav();
+  renderGrid();
+}
+
+(async function init(){
+  try{
+    const r = await window.storage.get('session', false);
+    if(r && r.value){
+      session = JSON.parse(r.value);
+      await enterApp();
+      return;
+    }
+  }catch(e){}
+  await checkRememberedAccess();
+})();
+</script>
+</body>
+</html>
